@@ -12,7 +12,6 @@ import { join, resolve } from 'node:path';
 
 import { generateReport } from './report.mjs';
 import {
-  createDeliverer,
   normalizeTargets,
   describeTargets,
   sendToTarget,
