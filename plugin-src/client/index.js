@@ -1,6 +1,8 @@
 // dsh-finreport — 客户端设置页（最小实现）
 // 展示: 调度状态 / 最近发送 / 下次运行；操作: 生成预览 / 立即发送
 
+import React from 'react';
+
 const h = React.createElement;
 
 export const name = 'finreport-settings';
@@ -49,6 +51,7 @@ function FinreportSettingsTab({ rpcCall }) {
   const [busy, setBusy] = React.useState(null); // 'generate' | 'send' | null
   const [error, setError] = React.useState(null);
   const [notice, setNotice] = React.useState(null);
+  const [lang, setLang] = React.useState('zh');
 
   const refresh = React.useCallback(async (signal) => {
     try {
@@ -69,7 +72,7 @@ function FinreportSettingsTab({ rpcCall }) {
   const onGenerate = async () => {
     setBusy('generate'); setNotice(null); setError(null);
     try {
-      const value = await unwrap(rpcCall, 'report.generate', {});
+      const value = await unwrap(rpcCall, 'report.generate', { language: lang });
       setPreview(value.text);
     } catch (err) {
       setError(String(err?.message ?? err));
@@ -81,7 +84,7 @@ function FinreportSettingsTab({ rpcCall }) {
   const onSend = async () => {
     setBusy('send'); setNotice(null); setError(null);
     try {
-      const value = await unwrap(rpcCall, 'report.send', {});
+      const value = await unwrap(rpcCall, 'report.send', { language: lang });
       setNotice(`已发送: ${JSON.stringify(value)}`);
       setPreview(null);
       await refresh();
@@ -95,18 +98,32 @@ function FinreportSettingsTab({ rpcCall }) {
   return h('div', { style: { maxWidth: '640px', fontFamily: 'system-ui, sans-serif' } },
     h('h3', null, '📊 财经日报'),
     h('p', { style: { color: '#666', fontSize: '13px' } },
-      '每天定时生成中文财经日报并通过 WhatsApp 推送（依赖 dsh-im 的 bot.sendText 端点）。'),
+      '每天定时生成中文财经日报并通过已接入的 IM 通道推送（WhatsApp/Telegram/Discord/飞书/钉钉/企微/QQ/微信，依赖 dsh-im 各通道的 bot.sendText 端点）。'),
 
     h('div', { style: { background: '#f6f6f6', borderRadius: '8px', padding: '12px', margin: '12px 0' } },
       status ? [
-        h(Field, { key: 's1', label: '调度', value: `每天 ${status.schedule}（${status.timezone}）${status.enabled ? '' : '· 已停用'}` }),
-        h(Field, { key: 's2', label: '最近发送', value: status.lastSentDate ? `${status.lastSentDate} ${status.lastSentAt ? `(${new Date(status.lastSentAt).toLocaleString()})` : ''}` : '尚未发送' }),
-        h(Field, { key: 's3', label: '下次运行', value: status.nextRunAt ? new Date(status.nextRunAt).toLocaleString() : '—' }),
-        h(Field, { key: 's4', label: '数据目录', value: status.dataDir }),
-        h(Field, { key: 's5', label: '上次错误', value: status.lastError ?? '无' }),
+        h(Field, { key: 's1', label: '全局调度', value: `每天 ${status.schedule}（${status.timezone}）${status.enabled ? '' : '· 已停用'}` }),
+        h(Field, {
+          key: 's2',
+          label: '投递目标',
+          value: (status.targets || []).map((t) =>
+            `${t.channel}[${t.index}] ${t.language} ${t.schedule}@${t.timezone} → ${(status.deliveryTargets || [])[t.index]?.target ?? ''}`).join('\n') || '未配置',
+        }),
+        h(Field, { key: 's3', label: '最近发送', value: status.lastSentDate ? `${status.lastSentDate} ${status.lastSentAt ? `(${new Date(status.lastSentAt).toLocaleString()})` : ''}` : '尚未发送' }),
+        h(Field, { key: 's4', label: '下次运行', value: (status.targets || []).map((t) => `${t.channel}: ${t.nextRunAt ? new Date(t.nextRunAt).toLocaleString() : '—'}`).join('；') || '—' }),
+        h(Field, { key: 's5', label: '聊天内触发', value: status.toolRegistered ? 'finreport_send 工具已注册' : '未注册' }),
+        h(Field, { key: 's6', label: '数据目录', value: status.dataDir }),
+        h(Field, { key: 's7', label: '上次错误', value: status.lastError ?? '无' }),
       ] : h('p', null, '正在读取状态…')),
 
-    h('div', { style: { display: 'flex', gap: '8px', marginBottom: '12px' } },
+    h('div', { style: { display: 'flex', gap: '8px', marginBottom: '12px', alignItems: 'center' } },
+      h('select', {
+        value: lang,
+        onChange: (e) => setLang(e.target.value),
+        style: { padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '13px' },
+      },
+        h('option', { value: 'zh' }, '中文'),
+        h('option', { value: 'en' }, 'English')),
       h(Button, { kind: 'primary', onClick: onSend, disabled: busy !== null }, busy === 'send' ? '发送中…' : '立即发送'),
       h(Button, { onClick: onGenerate, disabled: busy !== null }, busy === 'generate' ? '生成中…' : '生成预览')),
 

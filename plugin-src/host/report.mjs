@@ -1,29 +1,76 @@
 // dsh-finreport — 日报生成器（Node 版，无第三方运行时依赖）
 // 数据源: Yahoo Finance v8 chart / CoinGecko(备用) / Google News RSS / 本地宏观日历
+// 语言: 'zh'（中文）| 'en'（English）
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
-const WEEKDAYS_CN = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-
 export const MARKETS = [
-  ['^GSPC', 'S&P 500', 'us'], ['^DJI', '道琼斯', 'us'], ['^IXIC', '纳斯达克', 'us'],
-  ['^STOXX50E', 'Euro Stoxx 50', 'eu'], ['^GDAXI', '德国DAX', 'eu'],
-  ['^FCHI', '法国CAC 40', 'eu'], ['^AEX', '荷兰AEX', 'eu'],
-  ['^N225', '日经225', 'asia'], ['^HSI', '恒生指数', 'asia'],
-  ['000001.SS', '上证指数', 'asia'], ['^KS11', '韩国KOSPI', 'asia'],
-  ['EURUSD=X', '欧元/美元', 'fx'], ['USDCNY=X', '美元/人民币', 'fx'],
-  ['GBPUSD=X', '英镑/美元', 'fx'], ['USDJPY=X', '美元/日元', 'fx'],
-  ['GC=F', '黄金 (COMEX)', 'comm'], ['CL=F', 'WTI原油', 'comm'],
-  ['BZ=F', '布伦特原油', 'comm'], ['BTC-USD', '比特币', 'crypto'],
-  ['ETH-USD', '以太坊', 'crypto'],
+  // [symbol, zh, en, group]
+  ['^GSPC', 'S&P 500', 'S&P 500', 'us'],
+  ['^DJI', '道琼斯', 'Dow Jones', 'us'],
+  ['^IXIC', '纳斯达克', 'Nasdaq', 'us'],
+  ['^STOXX50E', 'Euro Stoxx 50', 'Euro Stoxx 50', 'eu'],
+  ['^GDAXI', '德国DAX', 'DAX 40', 'eu'],
+  ['^FCHI', '法国CAC 40', 'CAC 40', 'eu'],
+  ['^AEX', '荷兰AEX', 'AEX (Amsterdam)', 'eu'],
+  ['^N225', '日经225', 'Nikkei 225', 'asia'],
+  ['^HSI', '恒生指数', 'Hang Seng', 'asia'],
+  ['000001.SS', '上证指数', 'Shanghai Composite', 'asia'],
+  ['^KS11', '韩国KOSPI', 'KOSPI', 'asia'],
+  ['EURUSD=X', '欧元/美元', 'EUR/USD', 'fx'],
+  ['USDCNY=X', '美元/人民币', 'USD/CNY', 'fx'],
+  ['GBPUSD=X', '英镑/美元', 'GBP/USD', 'fx'],
+  ['USDJPY=X', '美元/日元', 'USD/JPY', 'fx'],
+  ['GC=F', '黄金 (COMEX)', 'Gold (COMEX)', 'comm'],
+  ['CL=F', 'WTI原油', 'WTI Crude', 'comm'],
+  ['BZ=F', '布伦特原油', 'Brent Crude', 'comm'],
+  ['BTC-USD', '比特币', 'Bitcoin', 'crypto'],
+  ['ETH-USD', '以太坊', 'Ethereum', 'crypto'],
 ];
 
 const GROUP_ORDER = ['us', 'eu', 'asia', 'fx', 'comm', 'crypto'];
-const GROUP_META = {
-  us: ['🇺🇸 美股', 2], eu: ['🇪🇺 欧股', 2], asia: ['🌏 亚洲', 2],
-  fx: ['💱 外汇', 4], comm: ['🥇 大宗商品', 1], crypto: ['🪙 加密货币', 0],
+const GROUP_TITLES = {
+  us: ['🇺🇸 美股', '🇺🇸 US Stocks'],
+  eu: ['🇪🇺 欧股', '🇪🇺 Europe'],
+  asia: ['🌏 亚洲', '🌏 Asia'],
+  fx: ['💱 外汇', '💱 FX'],
+  comm: ['🥇 大宗商品', '🥇 Commodities'],
+  crypto: ['🪙 加密货币', '🪙 Crypto'],
 };
+const GROUP_DECIMALS = { us: 2, eu: 2, asia: 2, fx: 4, comm: 1, crypto: 0 };
+
+const I18N = {
+  zh: {
+    title: '📊 *财经日报* · {date}',
+    timeLine: '🕗 阿姆斯特丹 {ams} · 北京时间 {bj}',
+    markets: '━━━━━ 🌐 全球市场 ━━━━━',
+    news: '━━━━━ 📰 今日要闻 ━━━━━',
+    calendar: '━━━━━ 📅 宏观日历 ━━━━━',
+    usLabel: '上日收盘', euLabel: '上日收盘', asiaToday: '今日盘中', latest: '最新',
+    noCalendarEvents: '今日无已排定的央行重大事件',
+    monthlyPrefix: '📌 月度常规：',
+    weekdays: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+    tz: { asia: '北京', us: '美东', eu: '欧洲', fx: '伦敦', comm: '美东', crypto: 'UTC' },
+    ago: (min, hr, day) => (min != null ? `${min}分钟前` : hr != null ? `${hr}小时前` : `${day}天前`),
+    footer: ['数据源: Yahoo Finance / CoinGecko / Google News', '仅作信息参考，不构成投资建议'],
+  },
+  en: {
+    title: '📊 *Daily Financial Report* · {date}',
+    timeLine: '🕗 Amsterdam {ams} · Beijing {bj}',
+    markets: '━━━━━ 🌐 Global Markets ━━━━━',
+    news: '━━━━━ 📰 Top News ━━━━━',
+    calendar: '━━━━━ 📅 Macro Calendar ━━━━━',
+    usLabel: 'Last Close', euLabel: 'Last Close', asiaToday: 'Today', latest: 'Latest',
+    noCalendarEvents: 'No major central-bank events scheduled today',
+    monthlyPrefix: '📌 Monthly recurring: ',
+    weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    tz: { asia: 'BJ', us: 'ET', eu: 'EU', fx: 'LON', comm: 'ET', crypto: 'UTC' },
+    ago: (min, hr, day) => (min != null ? `${min}min ago` : hr != null ? `${hr}h ago` : `${day}d ago`),
+    footer: ['Sources: Yahoo Finance / CoinGecko / Google News', 'For information only, not investment advice'],
+  },
+};
+
 const SYMBOL_TZ = {
   '^GSPC': 'America/New_York', '^DJI': 'America/New_York', '^IXIC': 'America/New_York',
   '^STOXX50E': 'Europe/Zurich', '^GDAXI': 'Europe/Berlin', '^FCHI': 'Europe/Paris',
@@ -51,6 +98,11 @@ const SOURCE_WEIGHTS = {
 };
 const BAD_WORDS = ['google news', 'top stories', 'videos', 'live updates'];
 
+function normalizeLang(language) {
+  const lang = String(language ?? 'zh').toLowerCase();
+  return lang === 'en' || lang === 'english' ? 'en' : 'zh';
+}
+
 // ---------------------------------------------------------------- helpers
 
 async function fetchText(url, { timeout = 12000, retries = 2, signal } = {}) {
@@ -76,14 +128,11 @@ async function fetchText(url, { timeout = 12000, retries = 2, signal } = {}) {
 
 const fetchJson = async (url, opts) => JSON.parse(await fetchText(url, opts));
 
-function pad(n, w = 2) { return String(n).padStart(w, '0'); }
-
 function fmtDateTime(ts, tzName) {
   const dt = new Intl.DateTimeFormat('en-CA', {
     timeZone: tzName, year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(new Date(ts));
-  // "2026-08-17, 14:05"
   const [date, time] = dt.split(', ');
   const [y, m, d] = date.trim().split('-');
   return { date: `${y}-${m}-${d}`, time: time.trim(), dateCN: `${Number(m)}/${Number(d)}` };
@@ -138,18 +187,19 @@ async function coingeckoFallback() {
   }
 }
 
-async function buildMarketSection() {
+async function buildMarketSection(language) {
+  const i18n = I18N[language];
   const quotes = new Map();
-  for (const [symbol, display, group] of MARKETS) {
+  for (const [symbol, zh, en, group] of MARKETS) {
     const q = await yahooQuote(symbol);
-    if (q) quotes.set(symbol, { display, group, ...q });
+    if (q) quotes.set(symbol, { display: language === 'en' ? en : zh, group, ...q });
     await new Promise((r) => setTimeout(r, 220));
   }
   const cg = await coingeckoFallback();
   for (const [label, q] of Object.entries(cg)) {
     if (!quotes.has(label)) {
       quotes.set(label, {
-        display: label === 'BTC-USD' ? '比特币' : '以太坊',
+        display: language === 'en' ? (label === 'BTC-USD' ? 'Bitcoin' : 'Ethereum') : (label === 'BTC-USD' ? '比特币' : '以太坊'),
         group: 'crypto',
         ...q,
       });
@@ -161,26 +211,28 @@ async function buildMarketSection() {
   for (const group of GROUP_ORDER) {
     const items = [...quotes.entries()].filter(([, v]) => v.group === group);
     if (!items.length) continue;
-    const [title, decimals] = GROUP_META[group];
+    const [title] = GROUP_TITLES[group];
+    const titleText = language === 'en' ? GROUP_TITLES[group][1] : title;
     let label;
-    if (group === 'us' || group === 'eu') label = '上日收盘';
+    if (group === 'us' || group === 'eu') label = i18n.usLabel;
     else if (group === 'asia') {
       label = items.every(([, v]) => fmtDateTime(v.ts, SYMBOL_TZ[v.symbol] ?? 'UTC').date === todayBJ)
-        ? '今日盘中' : '最新';
-    } else label = '最新';
-    lines.push(`\n${title} · ${label}`);
+        ? i18n.asiaToday : i18n.latest;
+    } else label = i18n.latest;
+    lines.push(`\n${titleText} · ${label}`);
+    const decimals = GROUP_DECIMALS[group];
     for (const [symbol, v] of items) {
       const pct = v.prev ? ((v.price - v.prev) / v.prev) * 100 : 0;
       const arrow = pct >= 0 ? '▲' : '▼';
       let tzLabel, tzForTime;
-      if (group === 'asia') { tzLabel = '北京'; tzForTime = 'Asia/Shanghai'; }
-      else if (group === 'us') { tzLabel = '美东'; tzForTime = 'America/New_York'; }
-      else if (group === 'eu') { tzLabel = '欧洲'; tzForTime = SYMBOL_TZ[symbol] ?? 'Europe/Berlin'; }
-      else if (group === 'fx') { tzLabel = '伦敦'; tzForTime = 'Europe/London'; }
-      else if (group === 'comm') { tzLabel = '美东'; tzForTime = 'America/New_York'; }
-      else { tzLabel = 'UTC'; tzForTime = 'UTC'; }
+      if (group === 'asia') { tzLabel = i18n.tz.asia; tzForTime = 'Asia/Shanghai'; }
+      else if (group === 'us') { tzLabel = i18n.tz.us; tzForTime = 'America/New_York'; }
+      else if (group === 'eu') { tzLabel = i18n.tz.eu; tzForTime = SYMBOL_TZ[symbol] ?? 'Europe/Berlin'; }
+      else if (group === 'fx') { tzLabel = i18n.tz.fx; tzForTime = 'Europe/London'; }
+      else if (group === 'comm') { tzLabel = i18n.tz.comm; tzForTime = 'America/New_York'; }
+      else { tzLabel = i18n.tz.crypto; tzForTime = 'UTC'; }
       const qt = fmtDateTime(v.ts, tzForTime);
-      lines.push(`▸ ${v.display.padEnd(10)} ${formatNumber(v.price, decimals).padStart(14)}  ` +
+      lines.push(`▸ ${v.display.padEnd(12)} ${formatNumber(v.price, decimals).padStart(14)}  ` +
         `${arrow}${Math.abs(pct).toFixed(2)}%  (${tzLabel} ${qt.dateCN} ${qt.time})`);
     }
   }
@@ -220,7 +272,8 @@ function xmlUnescape(s) {
     .replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&amp;/g, '&');
 }
 
-async function fetchNews(limit = 8) {
+async function fetchNews(language, limit = 8) {
+  const i18n = I18N[language];
   const now = Date.now();
   const pool = [];
   for (const [, query, hl, gl] of NEWS_QUERIES) {
@@ -249,22 +302,23 @@ async function fetchNews(limit = 8) {
     .slice(0, limit);
   const ago = (ts) => {
     const secs = Math.max(0, Math.floor((now - ts) / 1000));
-    if (secs < 3600) return `${Math.max(1, Math.floor(secs / 60))}分钟前`;
-    if (secs < 86400) return `${Math.floor(secs / 3600)}小时前`;
-    return `${Math.floor(secs / 86400)}天前`;
+    if (secs < 3600) return i18n.ago(Math.max(1, Math.floor(secs / 60)), null, null);
+    if (secs < 86400) return i18n.ago(null, Math.floor(secs / 3600), null);
+    return i18n.ago(null, null, Math.floor(secs / 86400));
   };
   const lines = [];
   ranked.forEach((it, i) => {
     const title = it.title.length > 110 ? `${it.title.slice(0, 107)}…` : it.title;
     lines.push(`${i + 1}. ${title}`);
-    lines.push(`   · ${it.src || '新闻'} · ${ago(it.ts)}`);
+    lines.push(`   · ${it.src || 'news'} · ${ago(it.ts)}`);
   });
-  return lines.length ? lines.join('\n') : '（暂无抓取到新闻，请稍后重试）';
+  return lines.length ? lines.join('\n') : (language === 'en' ? '(No news fetched, please retry later)' : '（暂无抓取到新闻，请稍后重试）');
 }
 
 // ---------------------------------------------------------------- calendar
 
-export function buildCalendarSection(events, monthlyNote, timeZone) {
+export function buildCalendarSection({ events, monthlyNote, monthlyNoteEn, timeZone, language = 'zh' }) {
+  const i18n = I18N[language];
   const now = new Date();
   const todayStr = fmtDateTime(now.getTime(), timeZone).date;
   const today = new Date(`${todayStr}T00:00:00`);
@@ -279,46 +333,60 @@ export function buildCalendarSection(events, monthlyNote, timeZone) {
   }
   upcoming.sort((a, b) => a.off - b.off);
   const lines = [];
-  if (!upcoming.length) lines.push('今日无已排定的央行重大事件');
+  if (!upcoming.length) lines.push(i18n.noCalendarEvents);
   const flags = { US: '🇺🇸', EU: '🇪🇺', CN: '🇨🇳', JP: '🇯🇵', GB: '🇬🇧', DE: '🇩🇪', FR: '🇫🇷', NL: '🇳🇱' };
   for (const { off, ev, start } of upcoming) {
-    const when = off === 0 ? '今日' : `${off}天后`;
+    const when = off === 0
+      ? (language === 'en' ? 'Today' : '今日')
+      : (language === 'en' ? `in ${off} day${off > 1 ? 's' : ''}` : `${off}天后`);
     const d = fmtDateTime(start.getTime(), timeZone);
-    const line = `▸ ${when} (${d.dateCN}) ${flags[ev.country] ?? ''} ${ev.name}` +
+    const name = language === 'en' ? (ev.nameEn ?? ev.name) : ev.name;
+    const line = `▸ ${when} (${d.dateCN}) ${flags[ev.country] ?? ''} ${name}` +
       (ev.detail ? `（${ev.detail}）` : '');
     lines.push(line);
   }
-  if (monthlyNote) lines.push(`\n📌 月度常规：${monthlyNote}`);
+  const note = language === 'en' ? (monthlyNoteEn ?? monthlyNote) : monthlyNote;
+  if (note) lines.push(`\n${i18n.monthlyPrefix}${note}`);
   return lines.join('\n');
 }
 
 // ---------------------------------------------------------------- assemble
 
-export async function generateReport({ events, monthlyNote, timeZone = 'Europe/Amsterdam', maxNews = 8 } = {}) {
+export async function generateReport({
+  events, monthlyNote, monthlyNoteEn, timeZone = 'Europe/Amsterdam', maxNews = 8, language = 'zh',
+} = {}) {
+  const lang = normalizeLang(language);
+  const i18n = I18N[lang];
   const now = new Date();
   const ams = fmtDateTime(now.getTime(), timeZone);
   const bj = fmtDateTime(now.getTime(), 'Asia/Shanghai');
-  const dateCN = `${Number(ams.date.slice(5, 7))}月${Number(ams.date.slice(8, 10))}日 ${WEEKDAYS_CN[now.getDay() === 0 ? 6 : now.getDay() - 1]}`;
+  const weekday = lang === 'en'
+    ? i18n.weekdays[now.getDay() === 0 ? 6 : now.getDay() - 1]
+    : i18n.weekdays[now.getDay() === 0 ? 6 : now.getDay() - 1];
+  const date = lang === 'en'
+    ? `${weekday}, ${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(now)} ${now.getDate()}`
+    : `${now.getMonth() + 1}月${now.getDate()}日 ${weekday}`;
   const [market, news, cal] = await Promise.all([
-    buildMarketSection(),
-    fetchNews(maxNews),
-    Promise.resolve(buildCalendarSection(events, monthlyNote, timeZone)),
+    buildMarketSection(lang),
+    fetchNews(lang, maxNews),
+    Promise.resolve(buildCalendarSection({ events, monthlyNote, monthlyNoteEn, timeZone, language: lang })),
   ]);
   return [
-    `📊 *财经日报* · ${dateCN}`,
-    `🕗 阿姆斯特丹 ${ams.time} · 北京时间 ${bj.dateCN} ${bj.time}`,
+    i18n.title.replace('{date}', date),
+    i18n.timeLine
+      .replace('{ams}', `${Number(ams.date.slice(5, 7))}/${Number(ams.date.slice(8, 10))} ${ams.time}`)
+      .replace('{bj}', `${bj.dateCN} ${bj.time}`),
     '',
-    '━━━━━ 🌐 全球市场 ━━━━━',
+    i18n.markets,
     market,
     '',
-    '━━━━━ 📰 今日要闻 ━━━━━',
+    i18n.news,
     news,
     '',
-    '━━━━━ 📅 宏观日历 ━━━━━',
+    i18n.calendar,
     cal,
     '',
     '━━━━━',
-    '数据源: Yahoo Finance / CoinGecko / Google News',
-    '仅作信息参考，不构成投资建议',
+    ...i18n.footer,
   ].join('\n');
 }
