@@ -428,8 +428,9 @@ export async function apply(ctx, config = {}) {
         schema: {
           type: 'object',
           additionalProperties: false,
+          required: ['sent'],
           properties: {
-            sent: { type: 'boolean', required: true },
+            sent: { type: 'boolean' },
             targets: {
               type: 'array',
               items: {
@@ -500,7 +501,6 @@ export async function apply(ctx, config = {}) {
     if (toolDispose) { toolDispose(); toolDispose = null; }
   }, 'dsh-finreport: cleanup');
 
-  return { name, status, generate, run, scheduleAll, targets };
 }
 
 export default { name, inject, apply };

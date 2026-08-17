@@ -60,7 +60,7 @@ try {
     whatsapp: { baseUrl: 'http://127.0.0.1:3080', botId: 'test-bot', jid: 'test@lid' },
     deliver: async (text) => ({ sent: true, jid: 'test@lid', len: text.length }),
   });
-  assert.ok(result.generate, 'api.generate exposed');
+  assert.equal(result, undefined, 'apply does not return a non-effect value');
   const handler = getHandler();
   assert.ok(handler, 'rpc handler registered');
   assert.ok(getTool(), 'finreport_send tool registered');
@@ -166,7 +166,7 @@ try {
     ],
     deliver: undefined,
   });
-  assert.ok(applied2, 'apply with targets ok');
+  assert.equal(applied2, undefined, 'apply with targets does not return a non-effect value');
   const tCount = getTimers2().size;
   assert.ok(tCount >= 2, `expected >=2 timers, got ${tCount}`);
   const st = await getHandler2()(FINREPORT_ENDPOINTS.status, {});
