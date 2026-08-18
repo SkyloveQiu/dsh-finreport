@@ -185,7 +185,16 @@ try {
   assert.equal(normalizeTargets({ whatsapp: { botId: 'b', jid: 'j' } }).length, 1);
   assert.equal(describeTargets({ delivery: [{ channel: 'telegram', botId: 'b', chatId: 12345678901 }] })[0].target, '123456…8901');
   assert.deepEqual(conversationTarget('whatsapp', 'x@lid', 'direct'), { jid: 'x@lid' });
+  assert.deepEqual(conversationTarget('telegram', '12345', 'direct'), { chatId: 12345 });
+  assert.deepEqual(conversationTarget('telegram', '@channel', 'direct'), { chatId: '@channel' });
+  assert.deepEqual(conversationTarget('discord', 'channel-1', 'group'), { channelId: 'channel-1' });
+  assert.deepEqual(conversationTarget('feishu', 'receive-1', 'direct'), { receiveId: 'receive-1' });
+  assert.deepEqual(conversationTarget('dingtalk', 'webhook-1', 'direct'), { sessionWebhook: 'webhook-1' });
+  assert.deepEqual(conversationTarget('wecom', 'chat-1', 'group'), { chatId: 'chat-1' });
   assert.deepEqual(conversationTarget('qq', 'g-1', 'group'), { group_openid: 'g-1' });
+  assert.deepEqual(conversationTarget('qq', 'u-1', 'direct'), { openid: 'u-1' });
+  assert.deepEqual(conversationTarget('weixin', 'user-1', 'direct'), { toUserId: 'user-1' });
+  assert.equal(conversationTarget('unknown', 'id-1', 'direct'), null);
   const calls = [];
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
