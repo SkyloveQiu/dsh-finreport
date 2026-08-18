@@ -5,7 +5,13 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { apply, createFinreportRpcHandler, FINREPORT_ENDPOINTS, nextRunMs } from '../../lib/index.js';
+import {
+  apply,
+  createFinreportRpcHandler,
+  FinreportStore,
+  FINREPORT_ENDPOINTS,
+  nextRunMs,
+} from '../../lib/index.js';
 
 function mockCtx() {
   let handler = null;
@@ -44,6 +50,20 @@ function mockCtx() {
 const dataDir = await mkdtemp(join(tmpdir(), 'finreport-test-'));
 
 try {
+  // --- file-backed events/state persistence ---
+  const store = new FinreportStore(join(dataDir, 'store'));
+  await store.init({
+    events: [{ date: '2026-08-19', name: 'Test event' }],
+    monthlyNote: 'Test monthly note',
+  });
+  const initialEvents = await store.loadEvents();
+  assert.equal(initialEvents.events[0].name, 'Test event');
+  assert.equal(initialEvents.monthlyNote, 'Test monthly note');
+  await store.saveState({ lastSentDate: '2026-08-19', attempts: 1 });
+  await store.saveState({ attempts: 2 });
+  assert.deepEqual(await store.loadState(), { lastSentDate: '2026-08-19', attempts: 2 });
+  console.log('✓ FinreportStore events/state persistence ok');
+
   // --- nextRunMs DST sanity ---
   const t1 = nextRunMs(new Date('2026-08-16T10:00:00Z'), '08:00', 'Europe/Amsterdam');
   assert.equal(new Date(t1).toISOString(), '2026-08-17T06:00:00.000Z'); // summer: 08:00 CEST = 06:00 UTC
