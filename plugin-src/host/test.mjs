@@ -162,6 +162,25 @@ try {
   assert.deepEqual(tg, { botId: 'b2', target: { chatId: 123 }, text: 'hi' });
   const qq = targetPayload('qq', { botId: 'b3', group_openid: 'g1', text: 'hi' });
   assert.deepEqual(qq, { botId: 'b3', target: { group_openid: 'g1' }, text: 'hi' });
+  assert.deepEqual(targetPayload('discord', { botId: 'b4', channelId: 'c1', text: 'hi' }), {
+    botId: 'b4', target: { channelId: 'c1' }, text: 'hi',
+  });
+  assert.deepEqual(targetPayload('feishu', { botId: 'b5', receiveId: 'r1', receiveIdType: 'open_id', text: 'hi' }), {
+    botId: 'b5', target: { receiveId: 'r1', receiveIdType: 'open_id' }, text: 'hi',
+  });
+  assert.deepEqual(targetPayload('dingtalk', { botId: 'b6', sessionWebhook: 'https://hook', text: 'hi' }), {
+    botId: 'b6', target: { sessionWebhook: 'https://hook' }, text: 'hi',
+  });
+  assert.deepEqual(targetPayload('wecom', { botId: 'b7', chatId: 'chat-1', text: 'hi' }), {
+    botId: 'b7', target: { chatId: 'chat-1' }, text: 'hi',
+  });
+  assert.deepEqual(targetPayload('weixin', { botId: 'b8', toUserId: 'user-1', text: 'hi' }), {
+    botId: 'b8', target: { toUserId: 'user-1' }, text: 'hi',
+  });
+  assert.throws(
+    () => targetPayload('unknown', { botId: 'b9', text: 'hi' }),
+    /unsupported delivery channel: unknown/,
+  );
   assert.equal(normalizeTargets({ delivery: [{ channel: 'telegram', botId: 'b', chatId: 1 }] }).length, 1);
   assert.equal(normalizeTargets({ whatsapp: { botId: 'b', jid: 'j' } }).length, 1);
   assert.equal(describeTargets({ delivery: [{ channel: 'telegram', botId: 'b', chatId: 12345678901 }] })[0].target, '123456…8901');
