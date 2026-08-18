@@ -5,7 +5,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { apply, FINREPORT_ENDPOINTS, nextRunMs } from '../../lib/index.js';
+import { apply, createFinreportRpcHandler, FINREPORT_ENDPOINTS, nextRunMs } from '../../lib/index.js';
 
 function mockCtx() {
   let handler = null;
@@ -130,6 +130,28 @@ try {
   resp = await handler('report.nope', {});
   assert.equal(resp.ok, false);
   console.log('✓ payload/endpoint validation ok');
+
+  // --- standalone RPC handler contract ---
+  const rpc = createFinreportRpcHandler({
+    generate: async (payload) => `generated:${JSON.stringify(payload)}`,
+    send: async () => ({ sent: true }),
+    status: async () => ({ ready: true }),
+  }, { status: async () => ({ ready: true }) });
+  assert.deepEqual(await rpc(FINREPORT_ENDPOINTS.generate, { maxNews: 3 }), {
+    ok: true,
+    value: { text: 'generated:{"maxNews":3}' },
+  });
+  assert.deepEqual(await rpc(FINREPORT_ENDPOINTS.send, {}), {
+    ok: true,
+    value: { sent: true },
+  });
+  assert.deepEqual(await rpc(FINREPORT_ENDPOINTS.status, {}), {
+    ok: true,
+    value: { ready: true },
+  });
+  assert.equal((await rpc(FINREPORT_ENDPOINTS.generate, { language: 'fr' })).ok, false);
+  assert.equal((await rpc(FINREPORT_ENDPOINTS.send, { extra: true })).ok, false);
+  console.log('✓ standalone RPC handler contract ok');
 
   // --- multi-channel delivery (targetPayload / sendToTarget via mock fetch) ---
   const { targetPayload, sendToTarget, normalizeTargets, describeTargets, conversationTarget } =
