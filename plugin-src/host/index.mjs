@@ -10,6 +10,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { defineTool } from '@deepseek-ai/dsh-tools';
+
 import { generateReport } from './report.mjs';
 import {
   normalizeTargets,
@@ -407,7 +409,7 @@ export async function apply(ctx, config = {}) {
 
   if (ctx.tools?.register) {
     const render = (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }];
-    toolDispose = ctx.tools.register({
+    toolDispose = ctx.tools.register(defineTool({
       name: 'finreport_send',
       description: 'Generate and send the daily financial report (中英文可选). When invoked from an IM chat, ' +
         "it sends the report back to that conversation; otherwise it sends to all configured delivery targets. " +
@@ -415,12 +417,10 @@ export async function apply(ctx, config = {}) {
       parameters: {
         language: {
           type: 'string',
-          required: false,
           description: "Report language: 'zh' (中文) or 'en' (English). Defaults to the target's configured language.",
         },
         target: {
           type: 'string',
-          required: false,
           description: 'Optional delivery target index (see /finreport report.status) or "all". Defaults to the current conversation.',
         },
       },
@@ -428,9 +428,8 @@ export async function apply(ctx, config = {}) {
         schema: {
           type: 'object',
           additionalProperties: false,
-          required: ['sent'],
           properties: {
-            sent: { type: 'boolean' },
+            sent: { type: 'boolean', required: true },
             targets: {
               type: 'array',
               items: {
@@ -486,7 +485,7 @@ export async function apply(ctx, config = {}) {
           note: 'sent to configured delivery targets',
         };
       },
-    });
+    }));
   } else {
     log.warn?.('tools service unavailable — in-chat "finreport_send" tool not registered');
   }

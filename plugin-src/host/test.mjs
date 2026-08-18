@@ -64,6 +64,9 @@ try {
   const handler = getHandler();
   assert.ok(handler, 'rpc handler registered');
   assert.ok(getTool(), 'finreport_send tool registered');
+  assert.equal(getTool().parameters.type, 'object', 'tool parameters use an object-root JSON Schema');
+  assert.deepEqual(Object.keys(getTool().parameters.properties).sort(), ['language', 'target']);
+  assert.equal(getTool().output.schema.type, 'object', 'tool output uses an object-root JSON Schema');
   assert.ok(getTimers().size >= 1, 'schedule armed');
 
   // --- status ---

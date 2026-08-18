@@ -38,7 +38,11 @@
     "build": "node plugin-src/host/build.mjs && node plugin-src/client/build.mjs",
     "test": "node plugin-src/host/test.mjs"
   },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.1 <0.2.0-0"
+  },
   "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.7",
     "esbuild": "^0.25.0",
     "react": "^18.3.1"
   },

@@ -15,7 +15,7 @@ const result = await build({
   platform: 'node',
   target: ['node22'],
   mainFields: ['module', 'main'],
-  external: [],
+  external: ['@deepseek-ai/dsh-tools'],
   write: false,
   minify: process.env.NODE_ENV === 'production',
   legalComments: 'none',
