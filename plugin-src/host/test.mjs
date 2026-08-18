@@ -51,7 +51,20 @@ try {
   assert.equal(new Date(t2).toISOString(), '2026-08-18T06:00:00.000Z');
   const t3 = nextRunMs(new Date('2026-12-16T10:00:00Z'), '08:00', 'Europe/Amsterdam');
   assert.equal(new Date(t3).toISOString(), '2026-12-17T07:00:00.000Z'); // winter: 08:00 CET = 07:00 UTC
+  assert.throws(
+    () => nextRunMs(new Date('2026-08-16T10:00:00Z'), '24:00', 'Europe/Amsterdam'),
+    /invalid schedule time: 24:00/,
+  );
+  assert.throws(
+    () => nextRunMs(new Date('2026-08-16T10:00:00Z'), '08:60', 'Europe/Amsterdam'),
+    /invalid schedule time: 08:60/,
+  );
+  assert.throws(
+    () => nextRunMs(new Date('2026-08-16T10:00:00Z'), '8am', 'Europe/Amsterdam'),
+    /invalid schedule time: 8am/,
+  );
   console.log('✓ nextRunMs DST (summer/winter) ok');
+  console.log('✓ nextRunMs rejects malformed schedule times');
 
   // --- apply plugin with mock ctx (custom deliverer, no targets) ---
   const { ctx, getHandler, getTool, getTimers } = mockCtx();
